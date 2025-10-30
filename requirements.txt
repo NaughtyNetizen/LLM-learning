@@ -1,0 +1,36 @@
+# 核心依赖
+torch>=2.0.0
+numpy>=1.24.0
+transformers>=4.30.0  # 参考实现，学习tokenizer
+tokenizers>=0.13.0
+
+# 数据处理
+datasets>=2.12.0
+sentencepiece>=0.1.99
+tiktoken>=0.4.0  # OpenAI的tokenizer
+
+# 训练工具
+tqdm>=4.65.0
+wandb>=0.15.0  # 可选：实验跟踪
+tensorboard>=2.13.0
+
+# 开发工具
+jupyter>=1.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+pandas>=2.0.0
+
+# 代码质量
+pytest>=7.3.0
+black>=23.3.0
+flake8>=6.0.0
+
+# 性能优化（可选）
+accelerate>=0.20.0  # Hugging Face的训练加速
+bitsandbytes>=0.39.0  # 量化支持
+einops>=0.6.1  # 张量操作简化
+
+# 其他工具
+pyyaml>=6.0
+omegaconf>=2.3.0  # 配置管理
+rich>=13.3.0  # 美化终端输出
