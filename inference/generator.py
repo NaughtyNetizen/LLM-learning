@@ -6,13 +6,20 @@
 
 import torch
 import torch.nn as nn
-from typing import Optional, Tuple, List
-from sampling import (
+from typing import Optional, Tuple, List, Union
+import os
+import sys
+
+# 添加项目根目录到路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from inference.sampling import (
     greedy_decode, 
     temperature_sampling,
     top_k_sampling,
     top_p_sampling
 )
+from tokenizer import BaseTokenizer, CharTokenizer, BPETokenizer
 
 
 class TextGenerator:
@@ -21,17 +28,39 @@ class TextGenerator:
     
     支持多种生成策略和参数配置
     """
-    def __init__(self, model, tokenizer=None):
+    def __init__(self, model, tokenizer: Union[BaseTokenizer, str, None] = None):
         """
         初始化
         
         参数:
             model: GPT模型
-            tokenizer: tokenizer（可选）
+            tokenizer: tokenizer实例或tokenizer保存路径
         """
         self.model = model
-        self.tokenizer = tokenizer
         self.model.eval()
+        
+        if isinstance(tokenizer, str):
+            self.tokenizer = self._load_tokenizer(tokenizer)
+        else:
+            self.tokenizer = tokenizer
+            
+    def _load_tokenizer(self, path: str) -> BaseTokenizer:
+        """
+        尝试加载tokenizer
+        """
+        # 尝试加载CharTokenizer
+        try:
+            return CharTokenizer.load(path)
+        except Exception:
+            pass
+            
+        # 尝试加载BPETokenizer
+        try:
+            return BPETokenizer.load(path)
+        except Exception:
+            pass
+            
+        raise ValueError(f"无法从 {path} 加载tokenizer")
     
     @torch.no_grad()
     def generate(
@@ -183,7 +212,7 @@ class TextGenerator:
             raise ValueError("需要提供tokenizer才能使用generate_text方法")
         
         # 编码prompt
-        prompt_ids = self.tokenizer.encode(prompt, return_tensors='pt')
+        prompt_ids = torch.tensor([self.tokenizer.encode(prompt)], dtype=torch.long)
         
         # 移到正确的设备
         device = next(self.model.parameters()).device
@@ -198,7 +227,7 @@ class TextGenerator:
         
         # 解码
         generated_texts = [
-            self.tokenizer.decode(ids, skip_special_tokens=True)
+            self.tokenizer.decode(ids.tolist())
             for ids in generated_ids
         ]
         
@@ -213,10 +242,6 @@ def demo_text_generation():
     print("文本生成演示")
     print("=" * 60)
     
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    
     from gpt_model.model import GPT
     from gpt_model.config import get_config
     
@@ -226,14 +251,16 @@ def demo_text_generation():
     model = GPT(config)
     model.eval()
     
+    # 创建简单的CharTokenizer用于演示
+    print("\n创建Tokenizer...")
+    chars = sorted(list("abcdefghijklmnopqrstuvwxyz "))
+    tokenizer = CharTokenizer(chars)
+    
     # 创建生成器
-    generator = TextGenerator(model)
+    generator = TextGenerator(model, tokenizer)
     
-    # 创建随机prompt
-    prompt_ids = torch.randint(0, config.vocab_size, (1, 10))
-    
-    print(f"\nPrompt token IDs: {prompt_ids[0].tolist()}")
-    print(f"Prompt长度: {prompt_ids.size(1)}")
+    prompt = "abc"
+    print(f"\nPrompt: \"{prompt}\"")
     
     # 测试不同的采样策略
     strategies = {
@@ -248,30 +275,14 @@ def demo_text_generation():
         print(f"策略: {strategy_name}")
         print(f"参数: {params}")
         
-        generated = generator.generate(
-            prompt_ids,
+        generated_texts = generator.generate_text(
+            prompt,
             max_new_tokens=20,
             strategy=strategy_name,
             **params
         )
         
-        print(f"生成长度: {generated.size(1)}")
-        print(f"生成的token IDs: {generated[0, :30].tolist()}")
-    
-    # 测试生成多个序列
-    print("\n" + "-" * 60)
-    print("生成多个序列 (num_return_sequences=3)")
-    
-    generated = generator.generate(
-        prompt_ids,
-        max_new_tokens=15,
-        strategy='top_p',
-        num_return_sequences=3
-    )
-    
-    print(f"生成形状: {generated.shape}")
-    for i, seq in enumerate(generated):
-        print(f"序列 {i+1}: {seq[:25].tolist()}")
+        print(f"生成的文本: \"{generated_texts[0]}\"")
     
     print("\n✅ 演示完成！")
 

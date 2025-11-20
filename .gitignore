@@ -1,4 +1,6 @@
 .venv/
 .vscode/
 __pycache__/
-./checkpoints/
+checkpoints/
+data/raw/
+.DS_Store

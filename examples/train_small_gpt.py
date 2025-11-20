@@ -17,6 +17,7 @@ from gpt_model.model import GPT
 from gpt_model.config import get_config
 from training.dataset import create_shakespeare_dataset, prepare_data
 from training.trainer import Trainer, get_cosine_schedule_with_warmup
+from tokenizer import CharTokenizer
 
 
 def train_small_gpt():
@@ -52,6 +53,7 @@ def train_small_gpt():
     num_epochs = 5
     learning_rate = 3e-4
     gradient_accumulation_steps = 4
+    save_dir = 'checkpoints/shakespeare'
     
     # ==================== 2. 准备数据 ====================
     
@@ -61,31 +63,26 @@ def train_small_gpt():
     # 下载数据集
     data_path = create_shakespeare_dataset()
     
-    # 简单的字符级tokenizer（实际应用中应该使用BPE等）
+    # 读取文本以构建词汇表
     with open(data_path, 'r', encoding='utf-8') as f:
         text = f.read()
     
-    # 创建字符到索引的映射
+    # 使用新的Tokenizer模块
+    print("构建Tokenizer...")
+    # 获取所有字符
     chars = sorted(list(set(text)))
-    vocab_size = len(chars)
-    char_to_idx = {ch: i for i, ch in enumerate(chars)}
-    idx_to_char = {i: ch for i, ch in enumerate(chars)}
+    tokenizer = CharTokenizer(chars)
     
-    print(f"词汇表大小: {vocab_size}")
+    print(f"词汇表大小: {tokenizer.vocab_size}")
     print(f"数据长度: {len(text):,} 字符")
     
-    # 简单的tokenizer
-    class CharTokenizer:
-        def encode(self, text):
-            return [char_to_idx[ch] for ch in text]
-        
-        def decode(self, ids):
-            return ''.join([idx_to_char[i] for i in ids])
-    
-    tokenizer = CharTokenizer()
+    # 保存Tokenizer
+    os.makedirs(save_dir, exist_ok=True)
+    tokenizer.save(save_dir)
+    print(f"Tokenizer已保存到: {save_dir}")
     
     # 更新配置的词汇表大小
-    config.vocab_size = vocab_size
+    config.vocab_size = tokenizer.vocab_size
     
     # 准备数据集
     train_dataset, val_dataset = prepare_data(
@@ -163,7 +160,7 @@ def train_small_gpt():
         log_interval=10,
         eval_interval=100,
         save_interval=500,
-        save_dir='checkpoints/shakespeare'
+        save_dir=save_dir
     )
     
     # 训练
@@ -198,8 +195,9 @@ def train_small_gpt():
     print("-" * 70)
     
     print("\n✅ 训练完成！")
-    print(f"模型保存在: checkpoints/shakespeare/")
+    print(f"模型和Tokenizer保存在: {save_dir}")
 
 
 if __name__ == "__main__":
     train_small_gpt()
+

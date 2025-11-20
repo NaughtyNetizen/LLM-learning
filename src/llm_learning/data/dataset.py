@@ -154,15 +154,21 @@ def create_shakespeare_dataset():
     data_dir = 'data/raw'
     os.makedirs(data_dir, exist_ok=True)
     
-    data_path = os.path.join(data_dir, 'tiny_shakespeare.txt')
+    # Update to point to WikiText if available, otherwise fallback or error
+    data_path = os.path.join(data_dir, 'wikitext', 'train.txt')
     
     if not os.path.exists(data_path):
-        print("下载 tiny shakespeare 数据集...")
-        url = 'https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt'
-        urllib.request.urlretrieve(url, data_path)
-        print(f"数据集已下载到: {data_path}")
+        # Fallback to tiny shakespeare if wikitext not found
+        fallback_path = os.path.join(data_dir, 'tiny_shakespeare.txt')
+        if os.path.exists(fallback_path):
+            print(f"WikiText not found, using fallback: {fallback_path}")
+            return fallback_path
+            
+        print(f"数据集不存在: {data_path}")
+        print("请运行: python scripts/download_data.py --dataset wikitext")
+        raise FileNotFoundError(f"无法找到数据集. 请先运行下载脚本.")
     else:
-        print(f"数据集已存在: {data_path}")
+        print(f"使用 WikiText 数据集: {data_path}")
     
     return data_path
 
@@ -185,19 +191,41 @@ def prepare_data(
     返回:
         train_dataset, val_dataset
     """
-    # 读取数据
-    with open(data_path, 'r', encoding='utf-8') as f:
-        text = f.read()
+    # Check if separate validation file exists
+    data_dir = os.path.dirname(data_path)
+    val_path = os.path.join(data_dir, 'validation.txt')
     
-    # 分割训练集和验证集
-    split_idx = int(len(text) * train_split)
-    train_text = text[:split_idx]
-    val_text = text[split_idx:]
-    
-    print(f"训练文本长度: {len(train_text):,} 字符")
-    print(f"验证文本长度: {len(val_text):,} 字符")
+    if os.path.exists(val_path) and os.path.basename(data_path) == 'train.txt':
+        print(f"发现独立验证集: {val_path}")
+        
+        # Load train
+        with open(data_path, 'r', encoding='utf-8') as f:
+            train_text = f.read()
+            
+        # Load val
+        with open(val_path, 'r', encoding='utf-8') as f:
+            val_text = f.read()
+            
+        print(f"训练文本长度: {len(train_text):,} 字符")
+        print(f"验证文本长度: {len(val_text):,} 字符")
+        
+    else:
+        # Fallback to splitting
+        print("未发现独立验证集，从训练集切分...")
+        with open(data_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+        
+        # 分割训练集和验证集
+        split_idx = int(len(text) * train_split)
+        train_text = text[:split_idx]
+        val_text = text[split_idx:]
+        
+        print(f"训练文本长度: {len(train_text):,} 字符")
+        print(f"验证文本长度: {len(val_text):,} 字符")
     
     # 创建数据集
+    # 注意：对于大文件，这里可能会占用较多内存
+    # 建议后续优化为Lazy Loading或Memory Mapping
     train_dataset = InMemoryTextDataset([train_text], tokenizer, seq_len)
     val_dataset = InMemoryTextDataset([val_text], tokenizer, seq_len)
     

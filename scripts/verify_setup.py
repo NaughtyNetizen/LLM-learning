@@ -72,6 +72,7 @@ test_imports = [
     ("inference.sampling", "top_p_sampling"),
     ("training.dataset", "TextDataset"),
     ("finetuning.lora", "LoRALayer"),
+    ("tokenizer", "CharTokenizer"),
 ]
 
 import_success = 0

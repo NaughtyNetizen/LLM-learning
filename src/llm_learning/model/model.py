@@ -10,12 +10,12 @@ import sys
 import os
 
 # 添加父目录到路径以便导入
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from transformer_basics.attention import CausalSelfAttention
-from transformer_basics.layers import PositionWiseFeedForward, LayerNorm
-from transformer_basics.embeddings import InputEmbedding
-from gpt_model.config import GPTConfig
+from llm_learning.modules.attention import CausalSelfAttention
+from llm_learning.modules.layers import PositionWiseFeedForward, LayerNorm
+from llm_learning.modules.embeddings import InputEmbedding
+from .config import GPTConfig
 
 
 class GPTBlock(nn.Module):

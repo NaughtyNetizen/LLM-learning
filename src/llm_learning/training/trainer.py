@@ -239,6 +239,12 @@ class Trainer:
             print(f"\nEpoch {epoch + 1}/{num_epochs}")
             print(f"  Train Loss: {train_loss:.4f}")
             print(f"  Val Loss: {val_loss:.4f}")
+            
+            if val_loss < self.best_val_loss:
+                self.best_val_loss = val_loss
+                self.save_checkpoint('best_model.pt')
+                print(f"  New Best Val Loss! Saved best_model.pt")
+            
             print(f"  Best Val Loss: {self.best_val_loss:.4f}")
             
             elapsed_time = time.time() - start_time
@@ -341,11 +347,11 @@ def demo_training():
     
     import sys
     import os
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     
-    from gpt_model.model import GPT
-    from gpt_model.config import get_config
-    from dataset import TextDataset
+    from llm_learning.model.model import GPT
+    from llm_learning.model.config import get_config
+    from llm_learning.data.dataset import TextDataset
     
     # 设置设备
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
